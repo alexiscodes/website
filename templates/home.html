@@ -2,10 +2,17 @@
     <head>
         <title>Headlines</title>
     </head>
+<!--Insert forms for user input-->
+<form>
+    <input type='text' name='publication' placeholder='search'/>
+    <input type='submit' value='Submit'>
+</form>
+
+
     <body>
         <h1>Headlines</h1>
 
-        <!--Comments, loop through variables to refer for each instance-->
+<!--Comments, loop through variables to refer for each instance-->
         {% for article in articles %}
             <b><a href="{{article.link}}">{{article.title}}</a></b><br />
             <i>{{article.published}}</i><br />
