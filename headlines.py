@@ -1,4 +1,5 @@
 import feedparser
+import datetime
 from flask import Flask
 from flask import request
 #Import to render html templates
@@ -8,6 +9,9 @@ from flask import request
 #Use CCY data
 import json
 import urllib
+
+#Start using Cookies -> REMEMBER Fallback logic!
+from flask import make_response
 
 
 
@@ -24,22 +28,27 @@ CURRENCY_URL = 'https://openexchangerates.org//api/latest.json?app_id=a08dd44731
 
 @app.route("/")
 def home():
-    publication = request.args.get('publication')
-    if not publication:
-        publication = DEFAULTS['publication']
+    #Use fallback logics for cookies
+    publication = get_value_with_fallback('publication')
     articles = get_news(publication)
 
-    currency_from = request.args.get("currency_from")
-    if not currency_from:
-        currency_from = DEFAULTS['currency_from']
-    currency_to = request.args.get("currency_to")
-    if not currency_to:
-        currency_to = DEFAULTS['currency_to']
+    currency_from = get_value_with_fallback("currency_from")
+    currency_to = get_value_with_fallback("currency_to")
     
     #Get all available rates
     rate, currencies = get_rate(currency_from, currency_to)
     
-    return render_template("home.html", articles=articles, currency_from=currency_from, currency_to=currency_to, rate=rate, currencies=sorted(currencies))
+    #Add Cookie response to this
+    #return render_template("home.html", articles=articles, currency_from=currency_from, currency_to=currency_to, rate=rate, currencies=sorted(currencies))
+    response = make_response(render_template("home.html", articles=articles, currency_from=currency_from, currency_to=currency_to, rate=rate, currencies=sorted(currencies)))
+    expires = datetime.datetime.now() + datetime.timedelta(days=365)
+    response.set_cookie("publication", publication, expires=expires)
+    response.set_cookie("currency_from", currency_from, expires=expires)
+    response.set_cookie("currency_to", currency_to, expires=expires)
+    return response
+
+
+
 
 #@app.route("/<publication>")
 #Use <> for URL to refer to variables
@@ -62,6 +71,14 @@ def get_rate(frm, to):
     frm_rate=parsed.get(frm.upper())
     to_rate=parsed.get(to.upper())
     return (to_rate / frm_rate, parsed.keys())  
+
+#Fallback logic for cookies
+def get_value_with_fallback(key):
+    if request.args.get(key):
+        return request.args.get(key)
+    if request.cookies.get(key):
+        return request.cookies.get(key)
+    return DEFAULTS[key]
 
 if __name__ == '__main__':
     app.run(port=5000, debug= True)
